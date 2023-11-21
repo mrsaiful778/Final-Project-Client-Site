@@ -1,11 +1,24 @@
-import { useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { loadCaptchaEnginge, LoadCanvasTemplate, LoadCanvasTemplateNoReload, validateCaptcha } from 'react-simple-captcha';
+import { AuthContext } from '../Provider/AuthProvider';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
+import Swal from 'sweetalert2';
+import { FcGoogle } from 'react-icons/fc';
 
 const Login = () => {
-    const captchaRef = useRef(null)
+
     const [disabled, setDisabled] = useState(true);
+
+    const { signIn, signInWithGoogle } = useContext(AuthContext);
+
+    const navigate = useNavigate();
+    const location = useLocation();
+
+    const from = location.state?.from?.pathname || '/';
+
     useEffect(() => {
-        loadCaptchaEnginge(6); 
+        loadCaptchaEnginge(6);
     }, [])
     const handleLogin = e => {
         e.preventDefault();
@@ -13,55 +26,111 @@ const Login = () => {
         const email = form.email.value;
         const password = form.password.value;
         console.log(email, password);
+        signIn(email, password)
+            .then(result => {
+                const user = result.user;
+                console.log(user);
+                Swal.fire({
+                    title: "Login Successfully",
+                    showClass: {
+                        popup: `
+                    animate__animated
+                    animate__fadeInUp
+                    animate__faster
+                  `
+                    },
+                    hideClass: {
+                        popup: `
+                    animate__animated
+                    animate__fadeOutDown
+                    animate__faster
+                  `
+                    }
+                });
+                navigate(from, { replace: true });
+            })
     }
-    const handleValidateCaptcha = e => {
-        const user_captcha_value = captchaRef.current.value;
-        if(validateCaptcha(user_captcha_value)){
+    const handleValidateCaptcha = (e) => {
+        const user_captcha_value = e.target.value;
+        if (validateCaptcha(user_captcha_value)) {
             setDisabled(false)
         }
-        else{
+        else {
             setDisabled(true)
         }
     }
-
+    const handleGoogleSignIn = () =>{
+        signInWithGoogle()
+        .then(result=>{
+            console.log(result.user);
+            Swal.fire({
+                title: "Login Successfully",
+                showClass: {
+                    popup: `
+                animate__animated
+                animate__fadeInUp
+                animate__faster
+              `
+                },
+                hideClass: {
+                    popup: `
+                animate__animated
+                animate__fadeOutDown
+                animate__faster
+              `
+                }
+            });
+            navigate('/');
+        })
+        .catch(error=>{
+            console.error(error)
+        })
+    }
     return (
-        <div className="hero min-h-screen bg-base-200">
-            <div className="hero-content flex-col md:flex-row-reverse">
-                <div className="text-center md:w-1/2 lg:text-left">
-                    <h1 className="text-5xl font-bold">Login now!</h1>
-                    <p className="py-6">Lorem ipsum dolor sit amet consectetur adipisicing elit. Alias magni dicta odio, fugit voluptas impedit possimus? Dolorem quis veniam porro.</p>
-                </div>
-                <div className="card md:1/2 max-w-sm shadow-2xl bg-base-100">
-                    <form onSubmit={handleLogin} className="card-body">
-                        <div className="form-control">
-                            <label className="label">
-                                <span className="label-text">Email</span>
-                            </label>
-                            <input type="email" name="email" placeholder="email" className="input input-bordered" required />
-                        </div>
-                        <div className="form-control">
-                            <label className="label">
-                                <span className="label-text">Password</span>
-                            </label>
-                            <input type="password" name="password" placeholder="password" className="input input-bordered" required />
-                            
-                        </div>
-                        <div className="form-control">
-                            <label className="label">
-                                <LoadCanvasTemplate />
-                            </label>
-                            <input type="text" ref={captchaRef} name="captcha" placeholder="type captcha" className="input input-bordered" required />
-                            <button onClick={handleValidateCaptcha} className='btn btn-outline btn-sm mt-2'>Validate</button>
+        <>
+            <Helmet>
+                <title>Bistro Boss | LogIn</title>
+            </Helmet>
+            <div className="hero min-h-screen bg-base-200">
+                <div className="hero-content flex-col md:flex-row-reverse">
+                    <div className="text-center md:w-1/2 lg:text-left">
+                        <h1 className="text-5xl font-bold">Login now!</h1>
+                        <p className="py-6">Lorem ipsum dolor sit amet consectetur adipisicing elit. Alias magni dicta odio, fugit voluptas impedit possimus? Dolorem quis veniam porro.</p>
+                    </div>
+                    <div className="card md:1/2 max-w-sm shadow-2xl bg-base-100">
+                        <form onSubmit={handleLogin} className="card-body">
+                            <div className="form-control">
+                                <label className="label">
+                                    <span className="label-text">Email</span>
+                                </label>
+                                <input type="email" name="email" placeholder="email" className="input input-bordered" required />
+                            </div>
+                            <div className="form-control">
+                                <label className="label">
+                                    <span className="label-text">Password</span>
+                                </label>
+                                <input type="password" name="password" placeholder="password" className="input input-bordered" required />
 
-                        </div>
-                        <div className="form-control mt-6">
+                            </div>
+                            <div className="form-control">
+                                <label className="label">
+                                    <LoadCanvasTemplate />
+                                </label>
+                                <input onBlur={handleValidateCaptcha} type="text" name="captcha" placeholder="type captcha" className="input input-bordered" required />
 
-                            <input disabled={disabled} className="btn btn-primary" type="submit" value="Login" />
-                        </div>
-                    </form>
+
+                            </div>
+                            <div className="form-control mt-6">
+
+                                <input disabled={disabled} className="btn btn-primary" type="submit" value="Login" />
+                            </div>
+                        </form>
+                        <p className='text-center pb-3'><small>New Here? <Link className="text-blue-600" to="/signup">sign in</Link></small></p>
+                        <p className="text-center my-4 flex justify-center "> <button onClick={handleGoogleSignIn} className="px-24 py-2 rounded-lg flex justify-center items-center gap-3 bg-base-200 hover:bg-gray-300 text-xl"> <FcGoogle></FcGoogle><p > Google</p></button></p>
+                    </div>
                 </div>
             </div>
-        </div>
+        </>
     );
 };
 
